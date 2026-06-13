@@ -18,7 +18,17 @@ python -m pip install -r requirements.txt
 streamlit run app.py
 ```
 
+หน้าแรกจะแสดง default snapshot จาก `data/default_shareholders.csv` ทันที โดยไม่ต้องกดดึงข้อมูลก่อน หากต้องการข้อมูลล่าสุดให้ใช้ปุ่ม `ดึงข้อมูลและสร้างกราฟ` ใน sidebar
+
 ถ้า SET บล็อก request ตอนใช้ headless ให้ปิด `Headless browser` ใน sidebar แล้วลองดึงใหม่
+
+## อัปเดต Default Snapshot
+
+```powershell
+python scripts\build_default_data.py --index SET50 --top-n 5 --limit 50 --lang th
+```
+
+คำสั่งนี้จะดึงข้อมูลจาก SET ผ่าน Selenium และเขียนทับ `data/default_shareholders.csv`
 
 ## ข้อมูลที่ใช้
 

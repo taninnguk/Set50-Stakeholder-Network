@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from datetime import datetime
+from pathlib import Path
+
 import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
@@ -17,6 +20,10 @@ from network_analysis import (
 from set_scraper import BrowserFetchError, SetScraper, StockInfo, parse_symbol_input
 
 
+APP_DIR = Path(__file__).resolve().parent
+DEFAULT_DATA_PATH = APP_DIR / "data" / "default_shareholders.csv"
+
+
 st.set_page_config(
     page_title="SET50 Shareholder Network",
     page_icon="SET50",
@@ -24,9 +31,42 @@ st.set_page_config(
 )
 
 
+def load_shareholder_csv(path: Path) -> pd.DataFrame:
+    if not path.exists():
+        return pd.DataFrame(columns=SHAREHOLDER_COLUMNS)
+
+    raw_df = pd.read_csv(path)
+    for column in SHAREHOLDER_COLUMNS:
+        if column not in raw_df.columns:
+            raw_df[column] = pd.NA
+    return records_to_dataframe(raw_df[SHAREHOLDER_COLUMNS].to_dict("records"))
+
+
+def default_data_label(path: Path) -> str:
+    if not path.exists():
+        return "ยังไม่มี default snapshot"
+
+    updated_at = datetime.fromtimestamp(path.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
+    return f"Default snapshot จากไฟล์ local: {path.name} (updated {updated_at})"
+
+
+def load_default_results(force: bool = False) -> None:
+    if not force and "shareholders_df" in st.session_state:
+        return
+
+    df = load_shareholder_csv(DEFAULT_DATA_PATH)
+    st.session_state["shareholders_df"] = df
+    st.session_state["scrape_errors"] = []
+    st.session_state["selected_symbols"] = (
+        sorted(df["symbol"].dropna().unique().tolist()) if not df.empty else []
+    )
+    st.session_state["data_source"] = default_data_label(DEFAULT_DATA_PATH)
+
+
 def reset_results() -> None:
-    for key in ("shareholders_df", "scrape_errors", "selected_symbols"):
+    for key in ("shareholders_df", "scrape_errors", "selected_symbols", "data_source"):
         st.session_state.pop(key, None)
+    load_default_results(force=True)
 
 
 def scrape_data(
@@ -86,6 +126,8 @@ def scrape_data(
 st.title("SET50 Shareholder Network")
 st.caption("Social network analysis จากผู้ถือหุ้นรายใหญ่ของบริษัทใน SET50 โดยดึงข้อมูลจากเว็บไซต์ตลาดหลักทรัพย์แห่งประเทศไทยผ่าน Selenium")
 
+load_default_results()
+
 with st.sidebar:
     st.header("ตั้งค่าการดึงข้อมูล")
     index_symbol = st.selectbox("ดัชนี", ["SET50", "SET100"], index=0)
@@ -102,13 +144,12 @@ with st.sidebar:
     )
 
     run = st.button("ดึงข้อมูลและสร้างกราฟ", type="primary", width="stretch")
-    clear = st.button("ล้างผลลัพธ์", width="stretch")
+    clear = st.button("กลับไป Default view", width="stretch")
 
 if clear:
     reset_results()
 
 if run:
-    reset_results()
     try:
         df, errors, selected_symbols = scrape_data(
             index_symbol=index_symbol,
@@ -123,6 +164,7 @@ if run:
         st.session_state["shareholders_df"] = df
         st.session_state["scrape_errors"] = errors
         st.session_state["selected_symbols"] = selected_symbols
+        st.session_state["data_source"] = f"Live scrape จาก SET: {index_symbol}, top {top_n}"
     except Exception as exc:
         st.error(str(exc))
 
@@ -132,9 +174,10 @@ df = st.session_state.get(
 )
 errors = st.session_state.get("scrape_errors", [])
 selected_symbols = st.session_state.get("selected_symbols", [])
+data_source = st.session_state.get("data_source", "")
 
 if df.empty:
-    st.info("กดปุ่มดึงข้อมูลเพื่อสร้าง network ของบริษัทและผู้ถือหุ้นรายใหญ่")
+    st.info("ยังไม่มี default snapshot ให้แสดง กดปุ่มดึงข้อมูลเพื่อสร้าง network ของบริษัทและผู้ถือหุ้นรายใหญ่")
     st.stop()
 
 company_count = df["symbol"].nunique()
@@ -148,7 +191,7 @@ metric_2.metric("ผู้ถือหุ้นไม่ซ้ำ", f"{holder_co
 metric_3.metric("ความสัมพันธ์", f"{edge_count:,}")
 metric_4.metric("ผู้ถือหุ้นร่วมหลายบริษัท", f"{shared_holder_count:,}")
 
-st.caption(f"Symbols: {', '.join(selected_symbols)}")
+st.caption(f"{data_source} | Symbols: {', '.join(selected_symbols)}")
 
 graph_tab, holder_tab, company_tab, raw_tab = st.tabs(
     ["Network", "ผู้ถือหุ้นร่วม", "บริษัทเชื่อมโยง", "ข้อมูลดิบ"]
