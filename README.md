@@ -10,7 +10,7 @@ python -m venv .venv
 python -m pip install -r requirements.txt
 ```
 
-ต้องมี Chrome หรือ Edge ในเครื่อง เพราะ Selenium Manager จะหา driver ให้ตาม browser ที่เลือกในหน้า Streamlit
+ต้องมี Chrome ในเครื่อง เพราะแอปใช้ Selenium แบบ Chrome headless เป็นค่า default
 
 ## รัน
 
@@ -20,7 +20,7 @@ streamlit run app.py
 
 หน้าแรกจะแสดง default snapshot จาก `data/default_shareholders.csv` ทันที โดยไม่ต้องกดดึงข้อมูลก่อน หากต้องการข้อมูลล่าสุดให้ใช้ปุ่ม `ดึงข้อมูลและสร้างกราฟ` ใน sidebar
 
-ถ้า SET บล็อก request ตอนใช้ headless ให้ปิด `Headless browser` ใน sidebar แล้วลองดึงใหม่
+การดึงข้อมูลสดจาก sidebar จะใช้ Chrome headless ตามค่า default ของแอป
 
 ## อัปเดต Default Snapshot
 
@@ -29,6 +29,7 @@ python scripts\build_default_data.py --index SET50 --top-n 5 --limit 50 --lang t
 ```
 
 คำสั่งนี้จะดึงข้อมูลจาก SET ผ่าน Selenium และเขียนทับ `data/default_shareholders.csv`
+ถ้าต้องการเปิด browser ให้เห็นระหว่างอัปเดต snapshot ให้เติม `--headed`
 
 ## ข้อมูลที่ใช้
 

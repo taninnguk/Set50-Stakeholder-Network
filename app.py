@@ -22,6 +22,8 @@ from set_scraper import BrowserFetchError, SetScraper, StockInfo, parse_symbol_i
 
 APP_DIR = Path(__file__).resolve().parent
 DEFAULT_DATA_PATH = APP_DIR / "data" / "default_shareholders.csv"
+DEFAULT_BROWSER = "chrome"
+DEFAULT_HEADLESS = True
 
 
 st.set_page_config(
@@ -75,8 +77,6 @@ def scrape_data(
     company_limit: int,
     top_n: int,
     lang: str,
-    browser: str,
-    headless: bool,
     delay_seconds: float,
 ) -> tuple[pd.DataFrame, list[str], list[str]]:
     errors: list[str] = []
@@ -87,8 +87,8 @@ def scrape_data(
     progress = st.progress(0)
 
     with SetScraper(
-        browser=browser,
-        headless=headless,
+        browser=DEFAULT_BROWSER,
+        headless=DEFAULT_HEADLESS,
         lang=lang,
         delay_seconds=delay_seconds,
     ) as scraper:
@@ -134,8 +134,6 @@ with st.sidebar:
     top_n = st.slider("จำนวนผู้ถือหุ้นต่อบริษัท", min_value=1, max_value=10, value=5)
     company_limit = st.slider("จำนวนบริษัทสูงสุด", min_value=1, max_value=100, value=50)
     lang = st.selectbox("ภาษาข้อมูลจาก SET", ["th", "en"], index=0)
-    browser = st.selectbox("Selenium browser", ["chrome", "edge"], index=0)
-    headless = st.toggle("Headless browser", value=True)
     delay_seconds = st.slider("หน่วงเวลาระหว่าง request (วินาที)", 0.0, 2.0, 0.2, 0.1)
     manual_symbols = st.text_area(
         "ระบุ symbol เอง (ไม่บังคับ)",
@@ -157,8 +155,6 @@ if run:
             company_limit=company_limit,
             top_n=top_n,
             lang=lang,
-            browser=browser,
-            headless=headless,
             delay_seconds=delay_seconds,
         )
         st.session_state["shareholders_df"] = df
